@@ -7,12 +7,12 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Đăng ký DbContext kết nối SQL Server
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<MegaMartInventoryDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 2. Cấu hình JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "SuperMarketSecretKeyForJWTAuth123456";
+var secretKey = jwtSettings["SecretKey"] ?? "MegaMartSecretKeyForJWTAuth123456SecureKey";
 var key = Encoding.UTF8.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>

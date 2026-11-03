@@ -13,10 +13,10 @@ namespace SupermarketAPI.Controllers.Auth
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly MegaMartInventoryDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(MegaMartInventoryDbContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
@@ -25,46 +25,72 @@ namespace SupermarketAPI.Controllers.Auth
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.PhoneEmail) || string.IsNullOrWhiteSpace(request.Password))
+            if (string.IsNullOrWhiteSpace(request.Phone_Email) || string.IsNullOrWhiteSpace(request.Password))
                 return BadRequest(new { message = "Vui lòng nhập đầy đủ thông tin!" });
 
-            // Tìm user theo Phone hoặc Email
+            // Tìm user theo Phone hoặc Email[cite: 11]
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Phone_Email == request.PhoneEmail);
+                .FirstOrDefaultAsync(u => u.Phone_Email == request.Phone_Email);
 
             if (user == null)
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác!" });
 
             if (!user.Status)
                 return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa!" });
-            bool isValidPassword = user.PasswordHash.StartsWith("hash_pass_")
-                ? request.Password == user.PasswordHash || request.Password == "123456" // Cho phép test mật khẩu "123456"
-                : BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+
+            // Kiểm tra mật khẩu an toàn, tránh lỗi SaltParseException
+            bool isValidPassword = false;
+            try
+            {
+                if (string.IsNullOrEmpty(user.PasswordHash))
+                {
+                    isValidPassword = false;
+                }
+                else if (user.PasswordHash.StartsWith("hash_pass_"))
+                {
+                    isValidPassword = request.Password == user.PasswordHash || request.Password == "123456";
+                }
+                else if (user.PasswordHash.StartsWith("$2")) // Định dạng chuẩn của BCrypt
+                {
+                    isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+                }
+                else
+                {
+                    // Fallback: So sánh trực tiếp nếu database đang lưu dạng text thường (plain text)
+                    isValidPassword = request.Password == user.PasswordHash;
+                }
+            }
+            catch (Exception)
+            {
+                // Dự phòng nếu xảy ra ngoại lệ không mong muốn khi verify
+                isValidPassword = request.Password == user.PasswordHash;
+            }
 
             if (!isValidPassword)
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác!" });
 
-            // Tạo Token JWT chứa Role claim
+            // Tạo Token JWT chứa Role claim[cite: 11]
             var token = GenerateJwtToken(user);
-                
+
             return Ok(new AuthResponse
             {
                 Token = token,
-                UserID = user.UserID,
+                UserID = user.UserId,
                 FullName = user.FullName,
                 Role = user.Role
             });
         }
-    private string GenerateJwtToken(Models.Auth.User user)
+
+        private string GenerateJwtToken(Models.Auth.User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "SuperMarketSecretKeyForJWTAuth123456");
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền
+                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền[cite: 11]
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -79,5 +105,4 @@ namespace SupermarketAPI.Controllers.Auth
             return tokenHandler.WriteToken(token);
         }
     }
-
 }
