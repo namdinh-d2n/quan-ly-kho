@@ -1,20 +1,26 @@
-package appmobile.example.quan_ly_kho.presentation.screens.login
+package appmobile.example.quan_ly_kho
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-
+import androidx.compose.ui.unit.sp
+import appmobile.example.quan_ly_kho.data.model.AuthResponse
+import appmobile.example.quan_ly_kho.presentation.screens.login.LoginUiState
+import appmobile.example.quan_ly_kho.presentation.screens.login.LoginViewModel
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel(),
-    onLoginSuccess: () -> Unit
+    viewModel: LoginViewModel,
+    onLoginSuccess: (AuthResponse) -> Unit
 ) {
-    val uiState = viewModel.uiState
+    var emailOrPhone by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -24,63 +30,74 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Đăng Nhập Quản Lý Kho",
+                text = "KHO SIÊU THỊ",
                 style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 32.dp)
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Đăng nhập hệ thống",
+                fontSize = 16.sp,
+                color = Color.Gray
             )
 
-            // Ô nhập Email
+            Spacer(modifier = Modifier.height(32.dp))
+
             OutlinedTextField(
-                value = viewModel.email,
-                onValueChange = { viewModel.onEmailChanged(it) },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                value = emailOrPhone,
+                onValueChange = { emailOrPhone = it },
+                label = { Text("Số điện thoại / Email") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Ô nhập Mật khẩu
             OutlinedTextField(
-                value = viewModel.password,
-                onValueChange = { viewModel.onPasswordChanged(it) },
+                value = password,
+                onValueChange = { password = it },
                 label = { Text("Mật khẩu") },
-                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                singleLine = true
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Nút Đăng nhập
             Button(
-                onClick = { viewModel.login(onLoginSuccess) },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                onClick = { viewModel.login(emailOrPhone, password) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(8.dp),
                 enabled = uiState !is LoginUiState.Loading
             ) {
                 if (uiState is LoginUiState.Loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Đăng Nhập", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = "ĐĂNG NHẬP", fontSize = 16.sp)
                 }
             }
 
-            // Hiển thị thông báo lỗi nếu có
-            if (uiState is LoginUiState.Error) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = uiState.errorMsg,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            // Xử lý thông báo lỗi hoặc chuyển màn hình thành công
+            when (uiState) {
+                is LoginUiState.Error -> {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = (uiState as LoginUiState.Error).message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                is LoginUiState.Success -> {
+                    LaunchedEffect(uiState) {
+                        onLoginSuccess((uiState as LoginUiState.Success).user)
+                    }
+                }
+                else -> {}
             }
         }
     }
