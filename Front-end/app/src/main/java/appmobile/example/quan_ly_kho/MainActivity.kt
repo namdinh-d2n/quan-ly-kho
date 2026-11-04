@@ -32,7 +32,15 @@ class MainActivity : ComponentActivity() {
                     LoginScreen(
                         viewModel = loginViewModel,
                         onLoginSuccess = { authResponse ->
-                            println("Xin chào ${authResponse.fullName} - Quyền: ${authResponse.role}")
+                            // In log kiểm tra dữ liệu trả về
+                            android.util.Log.d("LOGIN_SUCCESS", "Xin chào ${authResponse.fullName} - Quyền: ${authResponse.role}")
+
+                            // Hiện Toast thông báo nhanh lên màn hình
+                            Toast.makeText(
+                                applicationContext,
+                                "Đăng nhập thành công! Xin chào ${authResponse.fullName}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     )
                 }
