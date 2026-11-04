@@ -1,4 +1,4 @@
-package appmobile.example.quan_ly_kho
+package appmobile.example.quan_ly_kho.ui.features.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,8 +11,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import appmobile.example.quan_ly_kho.data.model.AuthResponse
-import appmobile.example.quan_ly_kho.presentation.screens.login.LoginUiState
-import appmobile.example.quan_ly_kho.presentation.screens.login.LoginViewModel
+
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
@@ -95,6 +94,7 @@ fun LoginScreen(
                 is LoginUiState.Success -> {
                     LaunchedEffect(uiState) {
                         onLoginSuccess((uiState as LoginUiState.Success).user)
+
                     }
                 }
                 else -> {}

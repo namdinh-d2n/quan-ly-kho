@@ -1,22 +1,24 @@
-package appmobile.example.quan_ly_kho.presentation.screens.login
+package appmobile.example.quan_ly_kho.ui.features.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import appmobile.example.quan_ly_kho.data.model.AuthResponse
 import appmobile.example.quan_ly_kho.data.model.LoginRequest
 import appmobile.example.quan_ly_kho.data.remote.ApiService
+import appmobile.example.quan_ly_kho.data.model.AuthResponse
+import appmobile.example.quan_ly_kho.data.remote.RetrofitClient
 
 sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
     data class Success(val user: AuthResponse) : LoginUiState()
+
     data class Error(val message: String) : LoginUiState()
 }
 
-class LoginViewModel(private val apiService: ApiService) : ViewModel() {
+class LoginViewModel(private val apiService: ApiService = RetrofitClient.apiService) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState

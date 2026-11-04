@@ -1,18 +1,30 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-.vs
+# =========================
+# .NET CORE (Thư mục backend)
+# =========================
 bin/
 obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+appsettings.Development.json
+wwwroot/uploads/
+
+# =========================
+# ANDROID (Thư mục mobile)
+# =========================
+.gradle/
+/build/
+*/build/
+local.properties
+.idea/
+*.iml
+.cxx/
+
+# =========================
+# HỆ ĐIỀU HÀNH & CÔNG CỤ CHUNG
+# =========================
+.DS_Store
+Thumbs.db
+node_modules/
