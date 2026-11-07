@@ -75,7 +75,7 @@ namespace SupermarketAPI.Controllers.Products
         /// ST-2.01.2 & ST-2.01.3: Thêm sản phẩm mới + Upload ảnh + Validation
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateProduct([FromForm] CreateProduct dto)
+        public async Task<IActionResult> CreateProduct([FromForm] CreateRequest dto)
         {
             if (!ModelState.IsValid)
             {

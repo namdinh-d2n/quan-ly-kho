@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace SupermarketAPI.DTOs.Product
 {
-    public class CreateProduct
+    public class CreateRequest
     {
         [Required(ErrorMessage = "Tên sản phẩm không được bỏ trống")]
         [StringLength(200, ErrorMessage = "Tên sản phẩm không được vượt quá 200 ký tự")]
