@@ -1,6 +1,6 @@
 using System;
 
-namespace SupermarketAPI.DTOs
+namespace SupermarketAPI.DTOs.Product
 {
     public class ApiResponse<T>
     {

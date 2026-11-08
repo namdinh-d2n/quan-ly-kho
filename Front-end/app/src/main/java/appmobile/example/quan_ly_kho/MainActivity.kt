@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import appmobile.example.quan_ly_kho.ui.features.auth.LoginScreen
 import appmobile.example.quan_ly_kho.ui.features.auth.LoginViewModel
+import appmobile.example.quan_ly_kho.ui.features.product.AddProductScreen
 import appmobile.example.quan_ly_kho.ui.navigation.MainNavigation
 import appmobile.example.quan_ly_kho.ui.theme.Quan_ly_khoTheme
 
@@ -52,6 +53,10 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf("")
                     }
 
+                    // State quản lý màn hình & tab đang chọn
+                    var currentScreen by rememberSaveable { mutableStateOf("main") }
+                    var selectedTab by rememberSaveable { mutableStateOf("home") }
+
                     val loginViewModel: LoginViewModel = viewModel()
 
                     if (!isLoggedIn) {
@@ -82,12 +87,34 @@ class MainActivity : ComponentActivity() {
                         )
 
                     } else {
-
-                        MainNavigation(
-                            userName = userName,
-                            userRole = userRole,
-                            jwtToken = jwtToken
-                        )
+                        when (currentScreen) {
+                            "main" -> {
+                                MainNavigation(
+                                    userName = userName,
+                                    userRole = userRole,
+                                    jwtToken = jwtToken,
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { newTab ->
+                                        selectedTab = newTab
+                                    },
+                                    onAddProductClick = {
+                                        currentScreen = "add_product"
+                                    }
+                                )
+                            }
+                            "add_product" -> {
+                                AddProductScreen(
+                                    onBackClick = {
+                                        selectedTab = "products" // Chuyển về đúng tab sản phẩm
+                                        currentScreen = "main"
+                                    },
+                                    onSaveSuccess = {
+                                        selectedTab = "products" // Chuyển về đúng tab sản phẩm sau khi lưu
+                                        currentScreen = "main"
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }

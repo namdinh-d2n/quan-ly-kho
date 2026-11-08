@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SupermarketAPI.Dbcontext;
-using SupermarketAPI.DTOs;
 using SupermarketAPI.DTOs.Product;
 using SupermarketAPI.Models;
 
