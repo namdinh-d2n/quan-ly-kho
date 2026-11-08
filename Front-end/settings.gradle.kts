@@ -19,6 +19,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Repository tải thư viện MPAndroidChart
+        maven("https://jitpack.io")
     }
 }
 

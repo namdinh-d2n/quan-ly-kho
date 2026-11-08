@@ -1,4 +1,4 @@
-package appmobile.example.quan_ly_kho
+package appmobile.example.quan_ly_kho.ui.features.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
