@@ -4,12 +4,12 @@ package appmobile.example.quan_ly_kho.ui.navigation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 import appmobile.example.quan_ly_kho.ui.features.dashboard.DashboardScreen
+import appmobile.example.quan_ly_kho.ui.features.product.ProductListScreen
 
 private data class BottomNavItem(
     val key: String,
@@ -28,12 +28,12 @@ private val navigationItems = listOf(
 fun MainNavigation(
     userName: String,
     userRole: String,
-    jwtToken: String
-) {
-    var selectedTab by rememberSaveable {
-        mutableStateOf("home")
-    }
+    jwtToken: String,
 
+    selectedTab: String = "home",
+    onTabSelected: (String) -> Unit = {},
+    onAddProductClick: () -> Unit = {}
+) {
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -44,7 +44,7 @@ fun MainNavigation(
                         selected = selectedTab == item.key,
 
                         onClick = {
-                            selectedTab = item.key
+                            onTabSelected(item.key)
                         },
 
                         icon = {
@@ -82,9 +82,8 @@ fun MainNavigation(
                 }
 
                 "products" -> {
-                    PlaceholderScreen(
-                        title = "Sản phẩm",
-                        description = "Khu vực quản lý sản phẩm"
+                    ProductListScreen(
+                        onAddProductClick = onAddProductClick
                     )
                 }
 

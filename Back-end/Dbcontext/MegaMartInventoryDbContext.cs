@@ -114,6 +114,8 @@ public partial class MegaMartInventoryDbContext : DbContext
             entity.Property(e => e.ImportPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductName).HasMaxLength(200);
             entity.Property(e => e.SellingPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
+            entity.Property(e => e.MinStockLevel).HasDefaultValue(0);
             entity.Property(e => e.Sku)
                 .HasMaxLength(50)
                 .IsUnicode(false)
