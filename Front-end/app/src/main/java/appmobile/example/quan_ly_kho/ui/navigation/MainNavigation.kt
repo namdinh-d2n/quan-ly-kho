@@ -2,12 +2,16 @@
 package appmobile.example.quan_ly_kho.ui.navigation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
+import appmobile.example.quan_ly_kho.data.model.UserRole
 import appmobile.example.quan_ly_kho.ui.features.dashboard.DashboardScreen
 import appmobile.example.quan_ly_kho.ui.features.product.ProductListScreen
 
@@ -32,7 +36,8 @@ fun MainNavigation(
 
     selectedTab: String = "home",
     onTabSelected: (String) -> Unit = {},
-    onAddProductClick: () -> Unit = {}
+    onAddProductClick: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     Scaffold(
         bottomBar = {
@@ -83,6 +88,7 @@ fun MainNavigation(
 
                 "products" -> {
                     ProductListScreen(
+                        userRole = userRole,
                         onAddProductClick = onAddProductClick
                     )
                 }
@@ -95,11 +101,81 @@ fun MainNavigation(
                 }
 
                 "settings" -> {
-                    PlaceholderScreen(
-                        title = "Cài đặt",
-                        description = "Thiết lập ứng dụng"
+                    SettingsScreen(
+                        userName = userName,
+                        userRole = userRole,
+                        onLogout = onLogout
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen(
+    userName: String,
+    userRole: String,
+    onLogout: () -> Unit
+) {
+    val displayRole = UserRole.getDisplayName(userRole)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Tài khoản người dùng",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Họ và tên: $userName",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "Vai trò: $displayRole ($userRole)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = onLogout,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Đăng xuất",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onError
+                )
             }
         }
     }

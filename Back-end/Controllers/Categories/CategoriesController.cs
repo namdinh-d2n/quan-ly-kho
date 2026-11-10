@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SupermarketAPI.Dbcontext;
@@ -10,6 +11,7 @@ namespace SupermarketAPI.Controllers.Categories
 {
     [ApiController]
     [Route("api/v1/categories")]
+    [Authorize]
     public class CategoriesController : ControllerBase
     {
         private readonly MegaMartInventoryDbContext _context;

@@ -24,12 +24,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import appmobile.example.quan_ly_kho.R
+import appmobile.example.quan_ly_kho.data.model.UserRole
 import appmobile.example.quan_ly_kho.data.model.product.ProductResponse
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
+    userRole: String = "",
     onAddProductClick: () -> Unit = {},
     viewModel: ProductListViewModel = viewModel()
 ) {
@@ -40,6 +42,10 @@ fun ProductListScreen(
     val bgLightGray = Color(0xFFF8F9FA)
     val textDark = Color(0xFF1E293B)
     val textGray = Color(0xFF64748B)
+
+    val canAddProduct = remember(userRole) {
+        UserRole.canAddProduct(userRole)
+    }
 
     // Gọi tìm kiếm khi người dùng nhập từ khóa
     LaunchedEffect(searchText) {
@@ -67,19 +73,21 @@ fun ProductListScreen(
                 color = textDark
             )
 
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(primaryBlue, shape = CircleShape)
-                    .clickable { onAddProductClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.plus),
-                    contentDescription = "Add Product",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+            if (canAddProduct) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(primaryBlue, shape = CircleShape)
+                        .clickable { onAddProductClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.plus),
+                        contentDescription = "Add Product",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
