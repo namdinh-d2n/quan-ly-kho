@@ -212,7 +212,9 @@ namespace SupermarketAPI.Migrations
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("MinStockLevel")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("ProductName")
                         .IsRequired()
@@ -235,7 +237,9 @@ namespace SupermarketAPI.Migrations
                         .HasDefaultValue(true, "DF_Products_Status");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Unit")
                         .HasMaxLength(50)
