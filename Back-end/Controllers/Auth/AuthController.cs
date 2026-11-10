@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SupermarketAPI.Dbcontext;
@@ -84,7 +84,7 @@ namespace SupermarketAPI.Controllers.Auth
         private string GenerateJwtToken(Models.Auth.User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "SuperMarketSecretKeyForJWTAuth123456");
+            var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "MegaMartSecretKeyForJWTAuth123456SecureKey");
 
             var claims = new[]
             {

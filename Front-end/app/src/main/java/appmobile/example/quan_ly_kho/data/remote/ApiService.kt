@@ -1,12 +1,84 @@
 package appmobile.example.quan_ly_kho.data.remote
 
+import appmobile.example.quan_ly_kho.data.model.AuthResponse
+import appmobile.example.quan_ly_kho.data.model.LoginRequest
+import appmobile.example.quan_ly_kho.data.model.category.CategoryResponse
+import appmobile.example.quan_ly_kho.data.model.product.ApiResponse
+import appmobile.example.quan_ly_kho.data.model.product.ProductListContainer
+import appmobile.example.quan_ly_kho.data.model.product.ProductResponse
+import appmobile.example.quan_ly_kho.data.model.statistics.ChartStatisticsResponse
+import appmobile.example.quan_ly_kho.data.model.statistics.TopExportedResponse
+import appmobile.example.quan_ly_kho.data.model.statistics.OldestStockResponse
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.http.Query
+import retrofit2.http.Header
+import retrofit2.http.Multipart
+import retrofit2.http.Part
 
 interface ApiService {
-    @POST("api/auth/login") // Thay đổi đường dẫn endpoint thực tế của backend bạn
+
+    // 1. API ĐĂNG NHẬP
+    @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequest
-    ): Response<LoginResponse>
+    ): Response<AuthResponse>
+
+
+    // 2. API BIỂU ĐỒ NHẬP - XUẤT
+    @GET("api/v1/statistics/chart")
+    suspend fun getChartStatistics(
+        @Header("Authorization") token: String,
+        @Query("filter") filter: String,
+        @Query("groupBy") groupBy: String
+    ): Response<ChartStatisticsResponse>
+
+
+    // 3. API TOP SẢN PHẨM XUẤT NHIỀU NHẤT
+    @GET("api/v1/statistics/top-exported")
+    suspend fun getTopExportedProducts(
+        @Header("Authorization") token: String,
+        @Query("filter") filter: String,
+        @Query("top") top: Int
+    ): Response<TopExportedResponse>
+
+
+    // 4. API TOP SẢN PHẨM TỒN KHO LÂU NHẤT
+    @GET("api/v1/statistics/oldest-stock")
+    suspend fun getOldestStockProducts(
+        @Header("Authorization") token: String,
+        @Query("filter") filter: String,
+        @Query("top") top: Int
+    ): Response<OldestStockResponse>
+
+
+    @GET("api/v1/categories")
+    suspend fun getCategories(): Response<ApiResponse<List<CategoryResponse>>>
+
+
+    @GET("api/v1/products")
+    suspend fun getProducts(
+        @Query("search") search: String? = null
+    ): Response<ApiResponse<ProductListContainer>>
+
+
+    @Multipart
+    @POST("api/v1/products")
+    suspend fun createProduct(
+        @Part("ProductName") productName: RequestBody,
+        @Part("CategoryId") categoryId: RequestBody,
+        @Part("SKU") sku: RequestBody,
+        @Part("SellingPrice") sellingPrice: RequestBody,
+        @Part("StockQuantity") stockQuantity: RequestBody,
+        @Part("MinStockLevel") minStockLevel: RequestBody,
+        @Part("Barcode") barcode: RequestBody? = null,
+        @Part("Unit") unit: RequestBody? = null,
+        @Part("ImportPrice") importPrice: RequestBody? = null,
+        @Part imageFile: MultipartBody.Part
+    ): Response<ApiResponse<ProductResponse>>
 }
