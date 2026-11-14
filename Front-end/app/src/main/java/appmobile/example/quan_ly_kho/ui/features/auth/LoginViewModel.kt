@@ -32,14 +32,21 @@ class LoginViewModel(private val apiService: ApiService = RetrofitClient.apiServ
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
             try {
-                // Sửa thành phone_Email để khớp hoàn toàn với DTO LoginRequest.cs ở Backend
                 val response = apiService.login(LoginRequest(phone_Email = phoneEmail, password = pass))
 
                 if (response.isSuccessful && response.body() != null) {
                     _uiState.value = LoginUiState.Success(response.body()!!)
                 } else {
-                    // Đọc chi tiết lỗi trả về từ Backend nếu có (ví dụ: tài khoản bị khóa, sai thông tin)
-                    val errorMsg = response.errorBody()?.string() ?: "Sai email/SĐT hoặc mật khẩu!"
+                    // SỬA TẠI ĐÂY: Parse JSON để lấy nội dung trường "message"
+                    val errorString = response.errorBody()?.string()
+                    val errorMsg = try {
+                        val jsonObject = org.json.JSONObject(errorString)
+                        jsonObject.getString("message")
+                    } catch (e: Exception) {
+                        // Đề phòng trường hợp lỗi mạng, mất mạng không trả về JSON
+                        "Sai email/SĐT hoặc mật khẩu!"
+                    }
+
                     _uiState.value = LoginUiState.Error(errorMsg)
                 }
             } catch (e: Exception) {

@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
                                     jwtToken = jwtToken,
                                     selectedTab = selectedTab,
                                     onTabSelected = { newTab ->
+
                                         selectedTab = newTab
                                     },
                                     onAddProductClick = {
