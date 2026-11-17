@@ -93,10 +93,14 @@ namespace SupermarketAPI.Controllers.Auth
                 new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền[cite: 11]
             };
 
+            // 1. Phải lấy (khai báo) biến thời gian TRƯỚC KHI tạo ngoặc nhọn
+            var expiryMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpiryInMinutes"]);
+
+            // 2. Sau đó mới dùng biến đó ở bên trong
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes), // Truyền biến vào đây
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 
