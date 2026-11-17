@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,7 @@ namespace SupermarketAPI.Controllers.Auth
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly MegaMartInventoryDbContext _context;
@@ -78,6 +80,44 @@ namespace SupermarketAPI.Controllers.Auth
                 UserID = user.UserId,
                 FullName = user.FullName,
                 Role = user.Role
+            });
+        }
+
+        /// <summary>
+        /// ST-1.02.3: Lấy thông tin và vai trò của người dùng hiện tại dựa trên JWT Token
+        /// GET /api/v1/auth/me hoặc /api/auth/me
+        /// </summary>
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("nameid")?.Value
+                           ?? User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Token không hợp lệ hoặc đã hết hạn!" });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng!" });
+            }
+
+            if (!user.Status)
+            {
+                return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa!" });
+            }
+
+            return Ok(new UserInfoResponse
+            {
+                UserID = user.UserId,
+                FullName = user.FullName,
+                Role = user.Role,
+                Phone_Email = user.Phone_Email,
+                Status = user.Status
             });
         }
 

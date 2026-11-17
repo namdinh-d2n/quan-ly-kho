@@ -2,6 +2,7 @@ package appmobile.example.quan_ly_kho.data.remote
 
 import appmobile.example.quan_ly_kho.data.model.AuthResponse
 import appmobile.example.quan_ly_kho.data.model.LoginRequest
+import appmobile.example.quan_ly_kho.data.model.UserInfoResponse
 import appmobile.example.quan_ly_kho.data.model.category.CategoryResponse
 import appmobile.example.quan_ly_kho.data.model.product.ApiResponse
 import appmobile.example.quan_ly_kho.data.model.product.ProductListContainer
@@ -28,6 +29,12 @@ interface ApiService {
     suspend fun login(
         @Body request: LoginRequest
     ): Response<AuthResponse>
+
+    // ST-1.02.3: API LẤY THÔNG TIN & VAI TRÒ NGƯỜI DÙNG HIỆN TẠI TỪ TOKEN
+    @GET("api/v1/auth/me")
+    suspend fun getCurrentUser(
+        @Header("Authorization") token: String? = null
+    ): Response<UserInfoResponse>
 
 
     // 2. API BIỂU ĐỒ NHẬP - XUẤT
