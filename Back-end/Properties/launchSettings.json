@@ -9,7 +9,6 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
-<<<<<<< Updated upstream
     },
     "https": {
       "commandName": "Project",
@@ -20,8 +19,6 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
-=======
->>>>>>> Stashed changes
     }
   }
 }
