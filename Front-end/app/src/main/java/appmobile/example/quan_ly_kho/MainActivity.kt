@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 import appmobile.example.quan_ly_kho.data.local.SessionManager
 import appmobile.example.quan_ly_kho.data.model.UserRole
+import appmobile.example.quan_ly_kho.data.remote.RetrofitClient
 import appmobile.example.quan_ly_kho.ui.features.auth.LoginScreen
 import appmobile.example.quan_ly_kho.ui.features.auth.LoginViewModel
 import appmobile.example.quan_ly_kho.ui.features.product.AddProductScreen
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ST-1.02.3: Khởi tạo SessionManager đồng thời giải mã JWT token kiểm tra hạn và lấy vai trò
         SessionManager.init(this)
         enableEdgeToEdge()
 
@@ -61,8 +63,44 @@ class MainActivity : ComponentActivity() {
 
                     val loginViewModel: LoginViewModel = viewModel()
 
-                    if (!isLoggedIn) {
+                    // ST-1.02.3: Khi khởi chạy ứng dụng, nếu đã có token thì gọi API GET /api/v1/auth/me
+                    // để xác thực lại và lấy vai trò mới nhất của người dùng từ máy chủ
+                    LaunchedEffect(isLoggedIn, jwtToken) {
+                        if (isLoggedIn && jwtToken.isNotBlank()) {
+                            try {
+                                val response = RetrofitClient.apiService.getCurrentUser("Bearer $jwtToken")
+                                if (response.isSuccessful && response.body() != null) {
+                                    val userInfo = response.body()!!
+                                    userName = userInfo.fullName
+                                    userRole = userInfo.role
+                                    SessionManager.updateUserInfo(userInfo)
+                                    Log.d("AUTH_ME", "Lấy vai trò từ GET /api/v1/auth/me thành công: ${userInfo.role}")
+                                } else if (response.code() == 401 || response.code() == 403) {
+                                    Log.w("AUTH_ME", "Token hết hạn hoặc tài khoản bị khóa")
+                                    SessionManager.clear()
+                                    isLoggedIn = false
+                                    Toast.makeText(
+                                        applicationContext,
+                                        "Phiên đăng nhập đã hết hạn hoặc tài khoản bị khóa!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            } catch (e: Exception) {
+                                Log.e("AUTH_ME", "Lỗi kết nối khi gọi /api/v1/auth/me: ${e.message}")
+                            }
+                        }
+                    }
 
+                    // Hàm tiện ích hiển thị Toast khi cố truy cập luồng chưa phân quyền (ST-1.02.5)
+                    val showUnauthorizedToast = {
+                        Toast.makeText(
+                            applicationContext,
+                            "Bạn không có quyền truy cập tính năng này",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    if (!isLoggedIn) {
                         LoginScreen(
                             viewModel = loginViewModel,
                             onLoginSuccess = { authResponse ->
@@ -86,7 +124,6 @@ class MainActivity : ComponentActivity() {
                                 isLoggedIn = true
                             }
                         )
-
                     } else {
                         when (currentScreen) {
                             "main" -> {
@@ -100,15 +137,15 @@ class MainActivity : ComponentActivity() {
                                         selectedTab = newTab
                                     },
                                     onAddProductClick = {
+                                        // ST-1.02.4 & ST-1.02.5: Kiểm tra quyền thêm sản phẩm
                                         if (UserRole.canAddProduct(userRole)) {
                                             currentScreen = "add_product"
                                         } else {
-                                            Toast.makeText(
-                                                applicationContext,
-                                                "Bạn không có quyền thực hiện thao tác này!",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            showUnauthorizedToast()
                                         }
+                                    },
+                                    onUnauthorizedAccess = {
+                                        showUnauthorizedToast()
                                     },
                                     onLogout = {
                                         SessionManager.clear()
@@ -129,7 +166,8 @@ class MainActivity : ComponentActivity() {
                             }
                             "add_product" -> {
                                 if (!UserRole.canAddProduct(userRole)) {
-                                    // Chặn nếu không đủ quyền
+                                    // ST-1.02.5: Chặn nếu không đủ quyền & hiển thị Toast
+                                    showUnauthorizedToast()
                                     currentScreen = "main"
                                 } else {
                                     AddProductScreen(

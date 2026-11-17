@@ -73,21 +73,23 @@ fun ProductListScreen(
                 color = textDark
             )
 
-            if (canAddProduct) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(primaryBlue, shape = CircleShape)
-                        .clickable { onAddProductClick() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.plus),
-                        contentDescription = "Add Product",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+            // ST-1.02.4 & ST-1.02.5: Nút thêm sản phẩm - Vô hiệu hóa (Disable) với Staff
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        if (canAddProduct) primaryBlue else Color(0xFFE2E8F0),
+                        shape = CircleShape
                     )
-                }
+                    .clickable { onAddProductClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.plus),
+                    contentDescription = if (canAddProduct) "Add Product" else "Locked Add Product",
+                    tint = if (canAddProduct) Color.White else Color(0xFF94A3B8),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
 

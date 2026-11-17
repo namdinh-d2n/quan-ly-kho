@@ -29,6 +29,7 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 
+import androidx.compose.foundation.clickable
 import java.util.Locale
 
 // =====================================================
@@ -37,7 +38,9 @@ import java.util.Locale
 
 private data class DashboardFunctionItem(
     val icon: String,
-    val title: String
+    val title: String,
+    val isEnabled: Boolean = true,
+    val onClick: () -> Unit = {}
 )
 
 // =====================================================
@@ -48,7 +51,9 @@ private data class DashboardFunctionItem(
 fun DashboardScreen(
     userName: String,
     userRole: String,
-    jwtToken: String
+    jwtToken: String,
+    onUnauthorizedAccess: () -> Unit = {},
+    onNavigateTab: (String) -> Unit = {}
 ) {
     val normalizedRole = userRole.trim().lowercase()
 
@@ -135,12 +140,20 @@ fun DashboardScreen(
         // PHÂN NHÁNH DASHBOARD THEO VAI TRÒ
         when (normalizedRole) {
             "admin" -> AdminDashboardContent(
-                jwtToken = jwtToken
+                jwtToken = jwtToken,
+                onUnauthorizedAccess = onUnauthorizedAccess,
+                onNavigateTab = onNavigateTab
             )
 
-            "manager" -> ManagerDashboardContent()
+            "manager" -> ManagerDashboardContent(
+                onUnauthorizedAccess = onUnauthorizedAccess,
+                onNavigateTab = onNavigateTab
+            )
 
-            "staff" -> StaffDashboardContent()
+            "staff" -> StaffDashboardContent(
+                onUnauthorizedAccess = onUnauthorizedAccess,
+                onNavigateTab = onNavigateTab
+            )
 
             else -> {
                 Text(
@@ -160,7 +173,8 @@ fun DashboardScreen(
 
 @Composable
 private fun FunctionCatalog(
-    functions: List<DashboardFunctionItem>
+    functions: List<DashboardFunctionItem>,
+    onUnauthorizedAccess: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -180,7 +194,8 @@ private fun FunctionCatalog(
                 rowItems.forEach { item ->
                     FunctionMenuCard(
                         item = item,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onUnauthorizedAccess = onUnauthorizedAccess
                     )
                 }
 
@@ -194,22 +209,36 @@ private fun FunctionCatalog(
 }
 
 // =====================================================
-// THẺ CHỨC NĂNG NHỎ GỌN
+// THẺ CHỨC NĂNG (HỖ TRỢ TRẠNG THÁI KHÓA/DISABLE)
+// ST-1.02.4 & ST-1.02.5
 // =====================================================
 
 @Composable
 private fun FunctionMenuCard(
     item: DashboardFunctionItem,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUnauthorizedAccess: () -> Unit = {}
 ) {
     Card(
-        modifier = modifier.height(68.dp),
+        modifier = modifier
+            .height(68.dp)
+            .clickable {
+                if (item.isEnabled) {
+                    item.onClick()
+                } else {
+                    onUnauthorizedAccess()
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (item.isEnabled) {
+                MaterialTheme.colorScheme.surface
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
+            defaultElevation = if (item.isEnabled) 2.dp else 0.dp
         )
     ) {
         Row(
@@ -222,7 +251,11 @@ private fun FunctionMenuCard(
             Surface(
                 modifier = Modifier.size(38.dp),
                 shape = CircleShape,
-                color = androidx.compose.ui.graphics.Color(0xFFE2EDFF)
+                color = if (item.isEnabled) {
+                    androidx.compose.ui.graphics.Color(0xFFE2EDFF)
+                } else {
+                    androidx.compose.ui.graphics.Color(0xFFE2E8F0)
+                }
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -232,19 +265,40 @@ private fun FunctionMenuCard(
                         text = item.icon,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color(0xFF3478E5)
+                        color = if (item.isEnabled) {
+                            androidx.compose.ui.graphics.Color(0xFF3478E5)
+                        } else {
+                            androidx.compose.ui.graphics.Color(0xFF94A3B8)
+                        }
                     )
                 }
             }
 
-            Text(
-                text = item.title,
+            Column(
                 modifier = Modifier.weight(1f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2
-            )
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = item.title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (item.isEnabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    },
+                    maxLines = 1
+                )
+
+                if (!item.isEnabled) {
+                    Text(
+                        text = "🔒 Không có quyền",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.75f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }
@@ -284,7 +338,9 @@ private fun DashboardSectionTitle(
 
 @Composable
 private fun AdminDashboardContent(
-    jwtToken: String
+    jwtToken: String,
+    onUnauthorizedAccess: () -> Unit = {},
+    onNavigateTab: (String) -> Unit = {}
 ) {
     val dashboardViewModel: DashboardViewModel = viewModel()
 
@@ -334,16 +390,17 @@ private fun AdminDashboardContent(
             fontWeight = FontWeight.Bold
         )
 
-        // DANH MỤC CHỨC NĂNG ADMIN
+        // DANH MỤC CHỨC NĂNG ADMIN (ĐẦY ĐỦ QUYỀN DUYỆT PHIẾU, XEM BÁO CÁO)
         FunctionCatalog(
             functions = listOf(
-                DashboardFunctionItem("⇄", "Nhập/Xuất"),
-                DashboardFunctionItem("▤", "Kiểm kho"),
-                DashboardFunctionItem("▥", "Báo cáo"),
-                DashboardFunctionItem("◇", "Sản phẩm"),
-                DashboardFunctionItem("♙", "Tài khoản"),
-                DashboardFunctionItem("!", "Cảnh báo tồn")
-            )
+                DashboardFunctionItem("✔", "Duyệt phiếu", isEnabled = true, onClick = { onNavigateTab("transactions") }),
+                DashboardFunctionItem("▥", "Xem báo cáo", isEnabled = true, onClick = { }),
+                DashboardFunctionItem("⇄", "Nhập/Xuất", isEnabled = true, onClick = { onNavigateTab("transactions") }),
+                DashboardFunctionItem("▤", "Kiểm kho", isEnabled = true, onClick = { }),
+                DashboardFunctionItem("◇", "Sản phẩm", isEnabled = true, onClick = { onNavigateTab("products") }),
+                DashboardFunctionItem("♙", "Tài khoản", isEnabled = true, onClick = { })
+            ),
+            onUnauthorizedAccess = onUnauthorizedAccess
         )
 
         HorizontalDivider()
@@ -798,7 +855,10 @@ private fun AdminDashboardContent(
 // =====================================================
 
 @Composable
-private fun ManagerDashboardContent() {
+private fun ManagerDashboardContent(
+    onUnauthorizedAccess: () -> Unit = {},
+    onNavigateTab: (String) -> Unit = {}
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -815,13 +875,17 @@ private fun ManagerDashboardContent() {
         )
 
         // DANH MỤC CHỨC NĂNG
+        // ST-1.02.4: Vô hiệu hóa (Disable) Menu Duyệt phiếu, Xem báo cáo đối với Thủ kho
         FunctionCatalog(
             functions = listOf(
-                DashboardFunctionItem("◇", "Sản phẩm"),
-                DashboardFunctionItem("⌕", "Quét mã vạch"),
-                DashboardFunctionItem("⇩", "Nhập kho"),
-                DashboardFunctionItem("▤", "Kiểm kho")
-            )
+                DashboardFunctionItem("◇", "Sản phẩm", isEnabled = true, onClick = { onNavigateTab("products") }),
+                DashboardFunctionItem("⌕", "Quét mã vạch", isEnabled = true, onClick = { }),
+                DashboardFunctionItem("⇩", "Nhập kho", isEnabled = true, onClick = { onNavigateTab("transactions") }),
+                DashboardFunctionItem("▤", "Kiểm kho", isEnabled = true, onClick = { }),
+                DashboardFunctionItem("✔", "Duyệt phiếu", isEnabled = false, onClick = { }),
+                DashboardFunctionItem("▥", "Xem báo cáo", isEnabled = false, onClick = { })
+            ),
+            onUnauthorizedAccess = onUnauthorizedAccess
         )
 
         HorizontalDivider()
@@ -871,7 +935,10 @@ private fun ManagerDashboardContent() {
 // =====================================================
 
 @Composable
-private fun StaffDashboardContent() {
+private fun StaffDashboardContent(
+    onUnauthorizedAccess: () -> Unit = {},
+    onNavigateTab: (String) -> Unit = {}
+) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -888,10 +955,17 @@ private fun StaffDashboardContent() {
         )
 
         // DANH MỤC CHỨC NĂNG
+        // ST-1.02.4: Vô hiệu hóa (Disable) các Menu Duyệt phiếu, Xem báo cáo, Thêm sản phẩm, Nhập kho
         FunctionCatalog(
             functions = listOf(
-                DashboardFunctionItem("⇧", "Xuất kho")
-            )
+                DashboardFunctionItem("⇧", "Xuất kho", isEnabled = true, onClick = { onNavigateTab("transactions") }),
+                DashboardFunctionItem("◇", "Sản phẩm", isEnabled = true, onClick = { onNavigateTab("products") }),
+                DashboardFunctionItem("✔", "Duyệt phiếu", isEnabled = false, onClick = { }),
+                DashboardFunctionItem("▥", "Xem báo cáo", isEnabled = false, onClick = { }),
+                DashboardFunctionItem("⇩", "Nhập kho", isEnabled = false, onClick = { }),
+                DashboardFunctionItem("▤", "Kiểm kho", isEnabled = false, onClick = { })
+            ),
+            onUnauthorizedAccess = onUnauthorizedAccess
         )
 
         HorizontalDivider()
