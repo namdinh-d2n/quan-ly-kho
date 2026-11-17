@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SupermarketAPI.Dbcontext;
@@ -11,6 +12,7 @@ namespace SupermarketAPI.Controllers.Auth
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly MegaMartInventoryDbContext _context;
@@ -69,7 +71,7 @@ namespace SupermarketAPI.Controllers.Auth
             if (!isValidPassword)
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác!" });
 
-            // Tạo Token JWT chứa Role claim[cite: 11]
+            // Tạo Token JWT chứa Role claim
             var token = GenerateJwtToken(user);
 
             return Ok(new AuthResponse
@@ -81,22 +83,64 @@ namespace SupermarketAPI.Controllers.Auth
             });
         }
 
+        /// <summary>
+        /// ST-1.02.3: Lấy thông tin và vai trò của người dùng hiện tại dựa trên JWT Token
+        /// GET /api/v1/auth/me hoặc /api/auth/me
+        /// </summary>
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? User.FindFirst("nameid")?.Value
+                           ?? User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized(new { message = "Token không hợp lệ hoặc đã hết hạn!" });
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "Không tìm thấy người dùng!" });
+            }
+
+            if (!user.Status)
+            {
+                return Unauthorized(new { message = "Tài khoản của bạn đã bị khóa!" });
+            }
+
+            return Ok(new UserInfoResponse
+            {
+                UserID = user.UserId,
+                FullName = user.FullName,
+                Role = user.Role,
+                Phone_Email = user.Phone_Email,
+                Status = user.Status
+            });
+        }
+
         private string GenerateJwtToken(Models.Auth.User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "SuperMarketSecretKeyForJWTAuth123456");
+            var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "MegaMartSecretKeyForJWTAuth123456SecureKey");
 
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền[cite: 11]
+                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền
             };
 
+            // 1. Phải lấy (khai báo) biến thời gian TRƯỚC KHI tạo ngoặc nhọn
+            var expiryMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpiryInMinutes"]);
+
+            // 2. Sau đó mới dùng biến đó ở bên trong
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes), // Truyền biến vào đây
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 

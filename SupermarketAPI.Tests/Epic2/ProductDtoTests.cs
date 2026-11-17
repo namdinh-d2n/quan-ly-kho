@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Moq;
 using SupermarketAPI.DTOs.Product;
 using Xunit;
-using UnitTests.Helpers;
 
-namespace UnitTests.DTOs
+namespace SupermarketAPI.Tests.DTOs
 {
     public class ProductDtoTests
     {

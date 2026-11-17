@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ namespace SupermarketAPI.Controllers.Products
 {
     [ApiController]
     [Route("api/v1/products")]
+    [Authorize]
     public class ProductsController : ControllerBase
     {
         private readonly MegaMartInventoryDbContext _context;
@@ -71,9 +73,10 @@ namespace SupermarketAPI.Controllers.Products
         }
 
         /// <summary>
-        /// ST-2.01.2 & ST-2.01.3: Thêm sản phẩm mới + Upload ảnh + Validation
+        /// ST-2.01.2 & ST-2.01.3: Thêm sản phẩm mới + Upload ảnh + Validation (Chỉ Admin và Thủ kho/Manager)
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CreateProduct([FromForm] CreateRequest dto)
         {
             if (!ModelState.IsValid)

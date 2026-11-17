@@ -15,9 +15,8 @@ using SupermarketAPI.Dbcontext;
 using SupermarketAPI.DTOs.Product;
 using SupermarketAPI.Models;
 using Xunit;
-using UnitTests.Helpers;
 
-namespace UnitTests.Controllers
+namespace SupermarketAPI.Tests.Controllers
 {
     public class ProductsControllerTests : IDisposable
     {
