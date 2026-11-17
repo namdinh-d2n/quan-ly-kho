@@ -34,7 +34,7 @@ class LoginAutomationTest {
 
         // (Tùy chọn) Có thể thêm lệnh kiểm tra xem app đã nhảy sang giao diện Dashboard chưa
     }
-    // 1. Luồng thành công (Happy Path) - Điền đúng chuẩn mọi thứ
+     //1. Luồng thành công (Happy Path) - Điền đúng chuẩn mọi thứ
     @Test
     fun testLogin_Successful() {
         composeTestRule.onNodeWithText("Số điện thoại / Email")
@@ -75,4 +75,52 @@ class LoginAutomationTest {
         composeTestRule.onNodeWithText("Vui lòng điền đầy đủ thông tin!")
             .assertExists()
     }
+
+
+    // TC_LG_11: Giới hạn độ dài ô nhập Mật khẩu / Email
+    @Test
+    fun testLogin_ExcessiveInputLength() {
+        // Tạo chuỗi dài 300 ký tự 'a'
+        val longEmail = "a".repeat(300) + "@megamart.vn"
+        val longPassword = "p".repeat(300)
+
+        // 1. Nhập chuỗi siêu dài (> 255 ký tự) vào ô Email và Mật khẩu
+        composeTestRule.onNodeWithText("Số điện thoại / Email")
+            .performTextInput(longEmail)
+        composeTestRule.onNodeWithText("Mật khẩu")
+            .performTextInput(longPassword)
+
+        // 2. Bấm nút "ĐĂNG NHẬP"
+        composeTestRule.onNodeWithText("ĐĂNG NHẬP").performClick()
+
+        // Nghiệm thu: Giao diện không bị crash, ứng dụng xử lý báo lỗi hoặc ở lại màn hình Đăng nhập
+        composeTestRule.onNodeWithText("Tài khoản hoặc mật khẩu không chính xác!")
+            .assertExists()
+    }
+
+    // TC_LG_12: Nhập ký tự đặc biệt / SQL Injection / XSS
+    @Test
+    fun testLogin_SqlInjectionAndXssInput() {
+        val sqlInjectionEmail = "' OR '1'='1"
+        val xssPassword = "<script>alert(1)</script>"
+
+        // 1. Nhập câu lệnh SQL / script vào ô Email và Mật khẩu
+        composeTestRule.onNodeWithText("Số điện thoại / Email")
+            .performTextInput(sqlInjectionEmail)
+        composeTestRule.onNodeWithText("Mật khẩu")
+            .performTextInput(xssPassword)
+
+        // 2. Bấm nút "ĐĂNG NHẬP"
+        composeTestRule.onNodeWithText("ĐĂNG NHẬP").performClick()
+
+        // Nghiệm thu: Đăng nhập thất bại, nút ĐĂNG NHẬP vẫn tồn tại (người dùng ở lại màn hình Đăng nhập)
+        composeTestRule.onNodeWithText("Tài khoản hoặc mật khẩu không chính xác!")
+            .assertExists()
+    }
+
+
+
+
+
+
 }
