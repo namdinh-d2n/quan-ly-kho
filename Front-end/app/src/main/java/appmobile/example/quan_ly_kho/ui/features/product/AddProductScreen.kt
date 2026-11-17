@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,7 +53,7 @@ fun AddProductScreen(
     val categories by viewModel.categories.collectAsState()
 
     // State Form
-    var isCategoryExpanded by remember { mutableStateOf(false) } // Thêm state đóng/mở menu
+    var isCategoryExpanded by remember { mutableStateOf(false) }
     var productName by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     var categoryName by remember { mutableStateOf("") }
@@ -109,7 +110,11 @@ fun AddProductScreen(
     Scaffold(
         bottomBar = {
             Surface(color = Color.White, shadowElevation = 8.dp) {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
                     Button(
                         onClick = {
                             selectedImageUri?.let { uri ->
@@ -129,7 +134,9 @@ fun AddProductScreen(
                             }
                         },
                         enabled = isFormValid && !isLoading,
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = primaryBlue,
@@ -157,19 +164,29 @@ fun AddProductScreen(
         ) {
             // 1. TOP BAR
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.size(40.dp).background(Color(0xFFF1F5F9), shape = CircleShape).clickable { onBackClick() },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFF1F5F9), shape = CircleShape)
+                        .clickable { onBackClick() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(painter = painterResource(id = R.drawable.back), contentDescription = "Back", tint = textDark, modifier = Modifier.size(30.dp))
                 }
                 Text("Thêm sản phẩm mới", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = textDark)
                 Box(
-                    modifier = Modifier.size(40.dp).background(if (isFormValid) primaryBlue else Color(0xFF94A3B8), shape = CircleShape)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            if (isFormValid) primaryBlue else Color(0xFF94A3B8),
+                            shape = CircleShape
+                        )
                         .clickable {
                             if (isFormValid && !isLoading && selectedImageUri != null) {
                                 viewModel.createProduct(
@@ -201,7 +218,11 @@ fun AddProductScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -215,7 +236,9 @@ fun AddProductScreen(
                             AsyncImage(
                                 model = selectedImageUri,
                                 contentDescription = "Selected Image",
-                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(12.dp)),
                                 contentScale = ContentScale.Crop
                             )
                         } else {
@@ -243,7 +266,12 @@ fun AddProductScreen(
 
                     Text("Tên sản phẩm *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                     Spacer(modifier = Modifier.height(6.dp))
-                    CustomInputField(value = productName, onValueChange = { productName = it }, placeholder = "Nhập tên sản phẩm...")
+                    CustomInputField(
+                        modifier = Modifier.testTag("input_ten_sp"),
+                        value = productName,
+                        onValueChange = { productName = it },
+                        placeholder = "Nhập tên sản phẩm..."
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -263,10 +291,12 @@ fun AddProductScreen(
                                     readOnly = true,
                                     placeholder = { Text("Chọn danh mục...", fontSize = 13.sp, color = textGray) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isCategoryExpanded) },
-                                    modifier = Modifier.menuAnchor(
-                                        type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                                        enabled = true
-                                    ).fillMaxWidth(),
+                                    modifier = Modifier
+                                        .menuAnchor(
+                                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                            enabled = true
+                                        )
+                                        .fillMaxWidth().testTag("dropdown_danh_muc"),
                                     shape = RoundedCornerShape(10.dp),
                                     singleLine = true,
                                     colors = OutlinedTextFieldDefaults.colors(
@@ -301,6 +331,7 @@ fun AddProductScreen(
                             Text("Đơn vị tính", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
                             CustomInputField(
+                                modifier = Modifier.testTag("input_dvt"),
                                 value = unit,
                                 onValueChange = { unit = it },
                                 placeholder = "Chai, kg..."
@@ -310,16 +341,20 @@ fun AddProductScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Mã hàng (SKU) & Mã vạch (Barcode)
+                    // Mã hàng (SKU)
                     Text("Mã hàng (SKU) *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                     Spacer(modifier = Modifier.height(6.dp))
                     CustomInputField(
+                        modifier = Modifier.testTag("input_sku"),
                         value = sku,
                         onValueChange = { sku = it },
                         placeholder = "Nhập mã hoặc quét tự động...",
                         trailingIcon = {
                             Box(
-                                modifier = Modifier.size(36.dp).background(Color(0xFFF1F5F9), shape = RoundedCornerShape(8.dp)).clickable { },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(8.dp))
+                                    .clickable { },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(painter = painterResource(id = R.drawable.barcode), contentDescription = "Scan SKU", modifier = Modifier.size(18.dp), tint = textDark)
@@ -335,6 +370,7 @@ fun AddProductScreen(
                             Text("Giá nhập", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
                             CustomInputField(
+                                modifier = Modifier.testTag("input_gia_nhap"),
                                 value = importPrice,
                                 onValueChange = { importPrice = it },
                                 placeholder = "0",
@@ -346,6 +382,7 @@ fun AddProductScreen(
                             Text("Giá bán *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
                             CustomInputField(
+                                modifier = Modifier.testTag("input_gia_ban"),
                                 value = sellingPrice,
                                 onValueChange = { sellingPrice = it },
                                 placeholder = "0",
@@ -373,12 +410,24 @@ fun AddProductScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Tồn kho ban đầu", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
-                            CustomInputField(value = stockQuantity, onValueChange = { stockQuantity = it }, placeholder = "0", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CustomInputField(
+                                modifier = Modifier.testTag("input_ton_kho_bd"),
+                                value = stockQuantity,
+                                onValueChange = { stockQuantity = it },
+                                placeholder = "0",
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Tồn kho tối thiểu", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
-                            CustomInputField(value = minStockLevel, onValueChange = { minStockLevel = it }, placeholder = "10", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CustomInputField(
+                                modifier = Modifier.testTag("input_ton_kho_tt"),
+                                value = minStockLevel,
+                                onValueChange = { minStockLevel = it },
+                                placeholder = "10",
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
                         }
                     }
                 }
@@ -389,36 +438,37 @@ fun AddProductScreen(
     }
 }
 
-// Component con: Input Field dùng chung
+// Component con: Input Field dùng chung (Đứng độc lập bên ngoài AddProductScreen)
 @Composable
 fun CustomInputField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    trailingIcon: @Composable (() -> Unit)? = null,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder, fontSize = 13.sp, color = Color(0xFF475569)) },
+        placeholder = { Text(placeholder, fontSize = 13.sp, color = Color.Gray) },
+        keyboardOptions = keyboardOptions,
         trailingIcon = trailingIcon,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         singleLine = true,
-        keyboardOptions = keyboardOptions,
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedContainerColor = Color(0xFFF3F4F6),
             focusedContainerColor = Color.White,
             unfocusedBorderColor = Color.Transparent,
-            focusedBorderColor = Color(0xFF2563EB),
+            focusedBorderColor = Color(0xFF3B82F6),
             focusedTextColor = Color(0xFF0F172A),
             unfocusedTextColor = Color(0xFF0F172A)
         )
     )
 }
 
-// Extension viền nét đứt (Dashed Border)
+// Extension viền nét đứt (Dashed Border - Đứng độc lập bên ngoài)
 fun Modifier.dashedBorder(color: Color, radius: Dp) = this.drawWithContent {
     drawContent()
     val strokeWidth = 2.dp.toPx()
