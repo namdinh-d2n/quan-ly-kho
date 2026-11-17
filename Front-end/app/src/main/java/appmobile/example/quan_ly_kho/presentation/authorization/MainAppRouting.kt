@@ -8,12 +8,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import appmobile.example.quan_ly_kho.LoginScreen
+import androidx.compose.ui.unit.dp
 import appmobile.example.quan_ly_kho.data.local.JwtUtils
 import appmobile.example.quan_ly_kho.data.local.SessionManager
 import appmobile.example.quan_ly_kho.data.model.AuthResponse
 import appmobile.example.quan_ly_kho.data.remote.ApiService
-import appmobile.example.quan_ly_kho.presentation.screens.login.LoginViewModel
+import appmobile.example.quan_ly_kho.ui.features.auth.LoginScreen
+import appmobile.example.quan_ly_kho.ui.features.auth.LoginViewModel
 
 @Composable
 fun MainAppRouting(apiService: ApiService) {
@@ -25,7 +26,6 @@ fun MainAppRouting(apiService: ApiService) {
     LaunchedEffect(Unit) {
         val savedToken = SessionManager.token
         if (!savedToken.isNullOrBlank()) {
-            // Kiểm tra token đã hết hạn chưa
             if (JwtUtils.isExpired(savedToken)) {
                 Log.w("AUTH_ME", "Token đã hết hạn, yêu cầu đăng nhập lại")
                 SessionManager.clear()
@@ -37,7 +37,6 @@ fun MainAppRouting(apiService: ApiService) {
                 if (response.isSuccessful && response.body() != null) {
                     val userInfo = response.body()!!
                     SessionManager.updateUserInfo(userInfo)
-                    // Khôi phục phiên đăng nhập
                     currentUser = AuthResponse(
                         token = savedToken,
                         userID = userInfo.userID,
@@ -56,7 +55,6 @@ fun MainAppRouting(apiService: ApiService) {
                 }
             } catch (e: Exception) {
                 Log.e("AUTH_ME", "Lỗi kết nối khi gọi /api/v1/auth/me: ${e.message}")
-                // Fallback: Dùng thông tin giải mã từ JWT token
                 val decoded = JwtUtils.decodeJwt(savedToken)
                 if (decoded != null && !decoded.role.isNullOrBlank()) {
                     currentUser = AuthResponse(
@@ -72,7 +70,7 @@ fun MainAppRouting(apiService: ApiService) {
     }
 
     if (currentUser == null) {
-        val viewModel = remember { LoginViewModel(apiService) }
+        val viewModel: LoginViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
         LoginScreen(viewModel = viewModel, onLoginSuccess = { user ->
             SessionManager.saveAuth(user)
             currentUser = user

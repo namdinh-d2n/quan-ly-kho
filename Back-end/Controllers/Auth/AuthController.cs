@@ -71,7 +71,7 @@ namespace SupermarketAPI.Controllers.Auth
             if (!isValidPassword)
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác!" });
 
-            // Tạo Token JWT chứa Role claim[cite: 11]
+            // Tạo Token JWT chứa Role claim
             var token = GenerateJwtToken(user);
 
             return Ok(new AuthResponse
@@ -130,7 +130,7 @@ namespace SupermarketAPI.Controllers.Auth
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền[cite: 11]
+                new Claim(ClaimTypes.Role, user.Role) // Lưu vai trò để phân quyền
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
