@@ -14,7 +14,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import appmobile.example.quan_ly_kho.data.local.SessionManager
@@ -41,15 +40,14 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var isLoggedIn by rememberSaveable {
-                        mutableStateOf(SessionManager.token != null)
-                    }
+                    // Lắng nghe trạng thái đăng nhập trực tiếp từ StateFlow của SessionManager
+                    val isLoggedIn by SessionManager.isLoggedIn.collectAsState()
 
-                    var userName by rememberSaveable {
+                    var userName by remember {
                         mutableStateOf(SessionManager.userName ?: "")
                     }
 
-                    var userRole by rememberSaveable {
+                    var userRole by remember {
                         mutableStateOf(SessionManager.userRole ?: "")
                     }
 
@@ -78,7 +76,6 @@ class MainActivity : ComponentActivity() {
                                 } else if (response.code() == 401 || response.code() == 403) {
                                     Log.w("AUTH_ME", "Token hết hạn hoặc tài khoản bị khóa")
                                     SessionManager.clear()
-                                    isLoggedIn = false
                                     Toast.makeText(
                                         applicationContext,
                                         "Phiên đăng nhập đã hết hạn hoặc tài khoản bị khóa!",
@@ -110,18 +107,14 @@ class MainActivity : ComponentActivity() {
                                 userRole = authResponse.role
                                 jwtToken = authResponse.token
 
-                                Log.d(
-                                    "LOGIN_SUCCESS",
-                                    "Xin chào $userName - Quyền: $userRole"
-                                )
+                                // Đã sửa lỗi cú pháp ngắt dòng chuỗi ở đây
+                                Log.d("LOGIN_SUCCESS", "Xin chào $userName - Quyền: $userRole")
 
                                 Toast.makeText(
                                     applicationContext,
                                     "Đăng nhập thành công! Xin chào $userName",
                                     Toast.LENGTH_LONG
                                 ).show()
-
-                                isLoggedIn = true
                             }
                         )
                     } else {
@@ -133,7 +126,6 @@ class MainActivity : ComponentActivity() {
                                     jwtToken = jwtToken,
                                     selectedTab = selectedTab,
                                     onTabSelected = { newTab ->
-
                                         selectedTab = newTab
                                     },
                                     onAddProductClick = {
@@ -149,7 +141,6 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onLogout = {
                                         SessionManager.clear()
-                                        isLoggedIn = false
                                         userName = ""
                                         userRole = ""
                                         jwtToken = ""
