@@ -38,6 +38,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import appmobile.example.quan_ly_kho.R
 import coil.compose.AsyncImage
 
+private val PRODUCT_NAME_REGEX = Regex("^[\\p{L}\\p{N}\\s\\-_.,()/%&+]+$")
+private val SKU_REGEX = Regex("^[a-zA-Z0-9\\-_]+$")
 @Composable
 fun AddProductScreen(
     onBackClick: () -> Unit = {},
@@ -65,6 +67,47 @@ fun AddProductScreen(
     var stockQuantity by remember { mutableStateOf("0") }
     var minStockLevel by remember { mutableStateOf("10") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // State báo lỗi validation ký tự đặc biệt / XSS / Emoji
+    var productNameError by remember { mutableStateOf<String?>(null) }
+    var skuError by remember { mutableStateOf<String?>(null) }
+
+    fun handleSaveProduct() {
+        val trimmedName = productName.trim()
+        val trimmedSku = sku.trim()
+
+        productNameError = when {
+            trimmedName.isEmpty() -> "Tên sản phẩm không được bỏ trống"
+            !PRODUCT_NAME_REGEX.matches(trimmedName) ->
+                "Tên sản phẩm không được chứa ký tự đặc biệt/thẻ HTML"
+            else -> null
+        }
+
+        skuError = when {
+            trimmedSku.isEmpty() -> "Mã SKU không được bỏ trống"
+            !SKU_REGEX.matches(trimmedSku) ->
+                "Mã SKU chỉ được chứa chữ không dấu, số, và dấu '-'"
+            else -> null
+        }
+
+        if (productNameError != null || skuError != null) return
+
+        selectedImageUri?.let { uri ->
+            viewModel.createProduct(
+                context = context,
+                productName = trimmedName,
+                categoryId = selectedCategoryId ?: 1,
+                sku = trimmedSku,
+                sellingPrice = sellingPrice,
+                stockQuantity = stockQuantity,
+                minStockLevel = minStockLevel,
+                barcode = barcode,
+                unit = unit,
+                importPrice = importPrice,
+                imageUri = uri
+            )
+        }
+    }
 
     // Launcher chọn ảnh từ thư viện
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -116,23 +159,7 @@ fun AddProductScreen(
                         .padding(16.dp)
                 ) {
                     Button(
-                        onClick = {
-                            selectedImageUri?.let { uri ->
-                                viewModel.createProduct(
-                                    context = context,
-                                    productName = productName,
-                                    categoryId = selectedCategoryId ?: 1,
-                                    sku = sku,
-                                    sellingPrice = sellingPrice,
-                                    stockQuantity = stockQuantity,
-                                    minStockLevel = minStockLevel,
-                                    barcode = barcode,
-                                    unit = unit,
-                                    importPrice = importPrice,
-                                    imageUri = uri
-                                )
-                            }
-                        },
+                        onClick = { handleSaveProduct() },
                         enabled = isFormValid && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -188,20 +215,8 @@ fun AddProductScreen(
                             shape = CircleShape
                         )
                         .clickable {
-                            if (isFormValid && !isLoading && selectedImageUri != null) {
-                                viewModel.createProduct(
-                                    context = context,
-                                    productName = productName,
-                                    categoryId = selectedCategoryId ?: 1,
-                                    sku = sku,
-                                    sellingPrice = sellingPrice,
-                                    stockQuantity = stockQuantity,
-                                    minStockLevel = minStockLevel,
-                                    barcode = barcode,
-                                    unit = unit,
-                                    importPrice = importPrice,
-                                    imageUri = selectedImageUri!!
-                                )
+                            if (isFormValid && !isLoading) {
+                                handleSaveProduct()
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -269,8 +284,12 @@ fun AddProductScreen(
                     CustomInputField(
                         modifier = Modifier.testTag("input_ten_sp"),
                         value = productName,
-                        onValueChange = { productName = it },
-                        placeholder = "Nhập tên sản phẩm..."
+                        onValueChange = {
+                            productName = it
+                            productNameError = null
+                        },
+                        placeholder = "Nhập tên sản phẩm...",
+                        errorMessage = productNameError
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -347,8 +366,12 @@ fun AddProductScreen(
                     CustomInputField(
                         modifier = Modifier.testTag("input_sku"),
                         value = sku,
-                        onValueChange = { sku = it },
+                        onValueChange = {
+                            sku = it
+                            skuError = null
+                        },
                         placeholder = "Nhập mã hoặc quét tự động...",
+                        errorMessage = skuError,
                         trailingIcon = {
                             Box(
                                 modifier = Modifier
@@ -446,26 +469,41 @@ fun CustomInputField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    errorMessage: String? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(placeholder, fontSize = 13.sp, color = Color.Gray) },
-        keyboardOptions = keyboardOptions,
-        trailingIcon = trailingIcon,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedContainerColor = Color(0xFFF3F4F6),
-            focusedContainerColor = Color.White,
-            unfocusedBorderColor = Color.Transparent,
-            focusedBorderColor = Color(0xFF3B82F6),
-            focusedTextColor = Color(0xFF0F172A),
-            unfocusedTextColor = Color(0xFF0F172A)
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, fontSize = 13.sp, color = Color.Gray) },
+            keyboardOptions = keyboardOptions,
+            trailingIcon = trailingIcon,
+            isError = errorMessage != null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = Color(0xFFF3F4F6),
+                focusedContainerColor = Color.White,
+                errorContainerColor = Color(0xFFFEF2F2),
+                unfocusedBorderColor = Color.Transparent,
+                focusedBorderColor = Color(0xFF3B82F6),
+                errorBorderColor = Color(0xFFEF4444),
+                focusedTextColor = Color(0xFF0F172A),
+                unfocusedTextColor = Color(0xFF0F172A),
+                errorTextColor = Color(0xFF0F172A)
+            )
         )
-    )
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = errorMessage,
+                color = Color(0xFFEF4444),
+                fontSize = 12.sp
+            )
+        }
+    }
 }
 
 // Extension viền nét đứt (Dashed Border - Đứng độc lập bên ngoài)
