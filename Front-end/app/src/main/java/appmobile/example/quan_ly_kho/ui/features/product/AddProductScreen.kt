@@ -50,8 +50,6 @@ fun AddProductScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
-    BackHandler { onBackClick() }
-
     // Lắng nghe danh mục động từ Backend đẩy sang
     val categories by viewModel.categories.collectAsState()
 
@@ -74,6 +72,24 @@ fun AddProductScreen(
     var skuError by remember { mutableStateOf<String?>(null) }
 
     var showPriceWarningDialog by remember { mutableStateOf(false) }
+
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
+
+    val hasUnsavedChanges = selectedImageUri != null ||
+            productName.isNotBlank() ||
+            selectedCategoryId != null ||
+            unit.isNotBlank() ||
+            sku.isNotBlank() ||
+            importPrice.isNotBlank() ||
+            sellingPrice.isNotBlank() ||
+            stockQuantity != "0" ||
+            minStockLevel != "10" ||
+            barcode.isNotBlank()
+
+    // Chặn nút Back cứng và thao tác vuốt lùi
+    BackHandler(enabled = hasUnsavedChanges) {
+        showExitConfirmDialog = true
+    }
 
     fun executeSaveProduct() {
         selectedImageUri?.let { uri ->
@@ -220,6 +236,68 @@ fun AddProductScreen(
         )
     }
 
+    if (showExitConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFFEF3C7), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color(0xFFD97706),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 24.sp
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Bạn có dữ liệu chưa lưu. Bạn có chắc chắn muốn thoát?",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExitConfirmDialog = false
+                        onBackClick()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD97706),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Thoát",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showExitConfirmDialog = false }
+                ) {
+                    Text(
+                        text = "Ở lại",
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     val primaryBlue = Color(0xFF2563EB)
     val bgLightGray = Color(0xFFF8F9FA)
     val textDark = Color(0xFF1E293B)
@@ -278,7 +356,13 @@ fun AddProductScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .background(Color(0xFFF1F5F9), shape = CircleShape)
-                        .clickable { onBackClick() },
+                        .clickable {
+                            if (hasUnsavedChanges) {
+                                showExitConfirmDialog = true
+                            } else {
+                                onBackClick()
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(painter = painterResource(id = R.drawable.back), contentDescription = "Back", tint = textDark, modifier = Modifier.size(30.dp))
