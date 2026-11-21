@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +73,26 @@ fun AddProductScreen(
     var productNameError by remember { mutableStateOf<String?>(null) }
     var skuError by remember { mutableStateOf<String?>(null) }
 
+    var showPriceWarningDialog by remember { mutableStateOf(false) }
+
+    fun executeSaveProduct() {
+        selectedImageUri?.let { uri ->
+            viewModel.createProduct(
+                context = context,
+                productName = productName.trim(),
+                categoryId = selectedCategoryId ?: 1,
+                sku = sku.trim(),
+                sellingPrice = sellingPrice,
+                stockQuantity = stockQuantity,
+                minStockLevel = minStockLevel,
+                barcode = barcode,
+                unit = unit,
+                importPrice = importPrice,
+                imageUri = uri
+            )
+        }
+    }
+
     fun handleSaveProduct() {
         val trimmedName = productName.trim()
         val trimmedSku = sku.trim()
@@ -92,21 +113,15 @@ fun AddProductScreen(
 
         if (productNameError != null || skuError != null) return
 
-        selectedImageUri?.let { uri ->
-            viewModel.createProduct(
-                context = context,
-                productName = trimmedName,
-                categoryId = selectedCategoryId ?: 1,
-                sku = trimmedSku,
-                sellingPrice = sellingPrice,
-                stockQuantity = stockQuantity,
-                minStockLevel = minStockLevel,
-                barcode = barcode,
-                unit = unit,
-                importPrice = importPrice,
-                imageUri = uri
-            )
+        // Kiểm tra Giá bán nhỏ hơn Giá nhập
+        val importVal = importPrice.replace(",", "").trim().toDoubleOrNull() ?: 0.0
+        val sellingVal = sellingPrice.replace(",", "").trim().toDoubleOrNull() ?: 0.0
+        if (importVal > 0 && sellingVal < importVal) {
+            showPriceWarningDialog = true
+            return
         }
+
+        executeSaveProduct()
     }
 
     // Launcher chọn ảnh từ thư viện
@@ -141,6 +156,68 @@ fun AddProductScreen(
             }
             else -> {}
         }
+    }
+
+    if (showPriceWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showPriceWarningDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFFEF3C7), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color(0xFFD97706),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 24.sp
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Giá bán đang thấp hơn giá nhập, bạn có chắc chắn muốn lưu?",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPriceWarningDialog = false
+                        executeSaveProduct()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD97706),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Lưu",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPriceWarningDialog = false }
+                ) {
+                    Text(
+                        text = "Hủy",
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 
     val primaryBlue = Color(0xFF2563EB)
