@@ -61,6 +61,18 @@ class AddProductViewModel : ViewModel() {
         imageUri: Uri
     ) {
         viewModelScope.launch {
+            val trimmedName = productName.trim()
+            val trimmedSku = sku.trim()
+
+            if (!Regex("^[\\p{L}\\p{N}\\s\\-_.,()/%&+]+$").matches(trimmedName)) {
+                _uiState.value = AddProductUiState.Error("Tên sản phẩm không được chứa ký tự đặc biệt/thẻ HTML")
+                return@launch
+            }
+            if (!Regex("^[a-zA-Z0-9\\-_]+$").matches(trimmedSku)) {
+                _uiState.value = AddProductUiState.Error("Mã SKU chỉ được chứa chữ không dấu, số, và dấu '-'")
+                return@launch
+            }
+
             _uiState.value = AddProductUiState.Loading
 
             try {

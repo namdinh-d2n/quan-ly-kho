@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import appmobile.example.quan_ly_kho.R
 import coil.compose.AsyncImage
 
+private val PRODUCT_NAME_REGEX = Regex("^[\\p{L}\\p{N}\\s\\-_.,()/%&+]+$")
+private val SKU_REGEX = Regex("^[a-zA-Z0-9\\-_]+$")
 @Composable
 fun AddProductScreen(
     onBackClick: () -> Unit = {},
@@ -46,8 +49,6 @@ fun AddProductScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-
-    BackHandler { onBackClick() }
 
     // Lắng nghe danh mục động từ Backend đẩy sang
     val categories by viewModel.categories.collectAsState()
@@ -65,6 +66,79 @@ fun AddProductScreen(
     var stockQuantity by remember { mutableStateOf("0") }
     var minStockLevel by remember { mutableStateOf("10") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // State báo lỗi validation ký tự đặc biệt / XSS / Emoji
+    var productNameError by remember { mutableStateOf<String?>(null) }
+    var skuError by remember { mutableStateOf<String?>(null) }
+
+    var showPriceWarningDialog by remember { mutableStateOf(false) }
+
+    var showExitConfirmDialog by remember { mutableStateOf(false) }
+
+    val hasUnsavedChanges = selectedImageUri != null ||
+            productName.isNotBlank() ||
+            selectedCategoryId != null ||
+            unit.isNotBlank() ||
+            sku.isNotBlank() ||
+            importPrice.isNotBlank() ||
+            sellingPrice.isNotBlank() ||
+            stockQuantity != "0" ||
+            minStockLevel != "10" ||
+            barcode.isNotBlank()
+
+    // Chặn nút Back cứng và thao tác vuốt lùi
+    BackHandler(enabled = hasUnsavedChanges) {
+        showExitConfirmDialog = true
+    }
+
+    fun executeSaveProduct() {
+        selectedImageUri?.let { uri ->
+            viewModel.createProduct(
+                context = context,
+                productName = productName.trim(),
+                categoryId = selectedCategoryId ?: 1,
+                sku = sku.trim(),
+                sellingPrice = sellingPrice,
+                stockQuantity = stockQuantity,
+                minStockLevel = minStockLevel,
+                barcode = barcode,
+                unit = unit,
+                importPrice = importPrice,
+                imageUri = uri
+            )
+        }
+    }
+
+    fun handleSaveProduct() {
+        val trimmedName = productName.trim()
+        val trimmedSku = sku.trim()
+
+        productNameError = when {
+            trimmedName.isEmpty() -> "Tên sản phẩm không được bỏ trống"
+            !PRODUCT_NAME_REGEX.matches(trimmedName) ->
+                "Tên sản phẩm không được chứa ký tự đặc biệt/thẻ HTML"
+            else -> null
+        }
+
+        skuError = when {
+            trimmedSku.isEmpty() -> "Mã SKU không được bỏ trống"
+            !SKU_REGEX.matches(trimmedSku) ->
+                "Mã SKU chỉ được chứa chữ không dấu, số, và dấu '-'"
+            else -> null
+        }
+
+        if (productNameError != null || skuError != null) return
+
+        // Kiểm tra Giá bán nhỏ hơn Giá nhập
+        val importVal = importPrice.replace(",", "").trim().toDoubleOrNull() ?: 0.0
+        val sellingVal = sellingPrice.replace(",", "").trim().toDoubleOrNull() ?: 0.0
+        if (importVal > 0 && sellingVal < importVal) {
+            showPriceWarningDialog = true
+            return
+        }
+
+        executeSaveProduct()
+    }
 
     // Launcher chọn ảnh từ thư viện
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -100,6 +174,130 @@ fun AddProductScreen(
         }
     }
 
+    if (showPriceWarningDialog) {
+        AlertDialog(
+            onDismissRequest = { showPriceWarningDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFFEF3C7), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color(0xFFD97706),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 24.sp
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Giá bán đang thấp hơn giá nhập, bạn có chắc chắn muốn lưu?",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPriceWarningDialog = false
+                        executeSaveProduct()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD97706),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Lưu",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPriceWarningDialog = false }
+                ) {
+                    Text(
+                        text = "Hủy",
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    if (showExitConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFFFEF3C7), shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "!",
+                        color = Color(0xFFD97706),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 24.sp
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "Bạn có dữ liệu chưa lưu. Bạn có chắc chắn muốn thoát?",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    lineHeight = 22.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF1E293B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExitConfirmDialog = false
+                        onBackClick()
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD97706),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Thoát",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showExitConfirmDialog = false }
+                ) {
+                    Text(
+                        text = "Ở lại",
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     val primaryBlue = Color(0xFF2563EB)
     val bgLightGray = Color(0xFFF8F9FA)
     val textDark = Color(0xFF1E293B)
@@ -116,23 +314,7 @@ fun AddProductScreen(
                         .padding(16.dp)
                 ) {
                     Button(
-                        onClick = {
-                            selectedImageUri?.let { uri ->
-                                viewModel.createProduct(
-                                    context = context,
-                                    productName = productName,
-                                    categoryId = selectedCategoryId ?: 1,
-                                    sku = sku,
-                                    sellingPrice = sellingPrice,
-                                    stockQuantity = stockQuantity,
-                                    minStockLevel = minStockLevel,
-                                    barcode = barcode,
-                                    unit = unit,
-                                    importPrice = importPrice,
-                                    imageUri = uri
-                                )
-                            }
-                        },
+                        onClick = { handleSaveProduct() },
                         enabled = isFormValid && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -174,7 +356,13 @@ fun AddProductScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .background(Color(0xFFF1F5F9), shape = CircleShape)
-                        .clickable { onBackClick() },
+                        .clickable {
+                            if (hasUnsavedChanges) {
+                                showExitConfirmDialog = true
+                            } else {
+                                onBackClick()
+                            }
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(painter = painterResource(id = R.drawable.back), contentDescription = "Back", tint = textDark, modifier = Modifier.size(30.dp))
@@ -188,20 +376,8 @@ fun AddProductScreen(
                             shape = CircleShape
                         )
                         .clickable {
-                            if (isFormValid && !isLoading && selectedImageUri != null) {
-                                viewModel.createProduct(
-                                    context = context,
-                                    productName = productName,
-                                    categoryId = selectedCategoryId ?: 1,
-                                    sku = sku,
-                                    sellingPrice = sellingPrice,
-                                    stockQuantity = stockQuantity,
-                                    minStockLevel = minStockLevel,
-                                    barcode = barcode,
-                                    unit = unit,
-                                    importPrice = importPrice,
-                                    imageUri = selectedImageUri!!
-                                )
+                            if (isFormValid && !isLoading) {
+                                handleSaveProduct()
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -269,8 +445,12 @@ fun AddProductScreen(
                     CustomInputField(
                         modifier = Modifier.testTag("input_ten_sp"),
                         value = productName,
-                        onValueChange = { productName = it },
-                        placeholder = "Nhập tên sản phẩm..."
+                        onValueChange = {
+                            productName = it
+                            productNameError = null
+                        },
+                        placeholder = "Nhập tên sản phẩm...",
+                        errorMessage = productNameError
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -347,8 +527,12 @@ fun AddProductScreen(
                     CustomInputField(
                         modifier = Modifier.testTag("input_sku"),
                         value = sku,
-                        onValueChange = { sku = it },
+                        onValueChange = {
+                            sku = it
+                            skuError = null
+                        },
                         placeholder = "Nhập mã hoặc quét tự động...",
+                        errorMessage = skuError,
                         trailingIcon = {
                             Box(
                                 modifier = Modifier
@@ -446,26 +630,41 @@ fun CustomInputField(
     placeholder: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    errorMessage: String? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(placeholder, fontSize = 13.sp, color = Color.Gray) },
-        keyboardOptions = keyboardOptions,
-        trailingIcon = trailingIcon,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            unfocusedContainerColor = Color(0xFFF3F4F6),
-            focusedContainerColor = Color.White,
-            unfocusedBorderColor = Color.Transparent,
-            focusedBorderColor = Color(0xFF3B82F6),
-            focusedTextColor = Color(0xFF0F172A),
-            unfocusedTextColor = Color(0xFF0F172A)
+    Column(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, fontSize = 13.sp, color = Color.Gray) },
+            keyboardOptions = keyboardOptions,
+            trailingIcon = trailingIcon,
+            isError = errorMessage != null,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = Color(0xFFF3F4F6),
+                focusedContainerColor = Color.White,
+                errorContainerColor = Color(0xFFFEF2F2),
+                unfocusedBorderColor = Color.Transparent,
+                focusedBorderColor = Color(0xFF3B82F6),
+                errorBorderColor = Color(0xFFEF4444),
+                focusedTextColor = Color(0xFF0F172A),
+                unfocusedTextColor = Color(0xFF0F172A),
+                errorTextColor = Color(0xFF0F172A)
+            )
         )
-    )
+        if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = errorMessage,
+                color = Color(0xFFEF4444),
+                fontSize = 12.sp
+            )
+        }
+    }
 }
 
 // Extension viền nét đứt (Dashed Border - Đứng độc lập bên ngoài)

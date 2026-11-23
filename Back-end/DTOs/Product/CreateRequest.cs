@@ -7,6 +7,7 @@ namespace SupermarketAPI.DTOs.Product
     {
         [Required(ErrorMessage = "Tên sản phẩm không được bỏ trống")]
         [StringLength(200, ErrorMessage = "Tên sản phẩm không được vượt quá 200 ký tự")]
+        [RegularExpression(@"^[\p{L}\p{N}\s\-_.,()/%&+]+$", ErrorMessage = "Tên sản phẩm không được chứa ký tự đặc biệt, thẻ HTML hoặc Emoji")]
         public string ProductName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Danh mục sản phẩm là bắt buộc")]
@@ -15,6 +16,7 @@ namespace SupermarketAPI.DTOs.Product
 
         [Required(ErrorMessage = "Mã SKU không được bỏ trống")]
         [StringLength(50, ErrorMessage = "Mã SKU không được vượt quá 50 ký tự")]
+        [RegularExpression(@"^[a-zA-Z0-9\-_]+$", ErrorMessage = "Mã SKU chỉ được chứa chữ cái không dấu, số, dấu gạch ngang (-) hoặc gạch dưới (_)")]
         public string Sku { get; set; } = string.Empty;
 
         [StringLength(100)]
