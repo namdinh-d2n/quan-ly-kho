@@ -95,7 +95,8 @@ class AddProductViewModel : ViewModel() {
                 val minStockPart = minStockLevel.ifBlank { "10" }.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 val barcodePart = barcode?.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
-                val unitPart = unit?.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val unitPart = (unit?.trim()?.ifBlank { "Cái" } ?: "Cái")
+                    .toRequestBody("text/plain".toMediaTypeOrNull())
                 val importPricePart = importPrice?.takeIf { it.isNotBlank() }?.toRequestBody("text/plain".toMediaTypeOrNull())
 
                 // 3. Gọi API qua Retrofit
@@ -144,6 +145,30 @@ class AddProductViewModel : ViewModel() {
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    fun checkBarcodeDuplicate(
+        barcode: String,
+        onResult: (exists: Boolean, message: String?) -> Unit
+    ) {
+        val cleanCode = barcode.trim()
+        if (cleanCode.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                // Thay RetrofitClient.apiService bằng tên biến apiService bạn đang dùng trong ViewModel
+                val response = RetrofitClient.apiService.checkBarcode(cleanCode)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val exists = body?.data?.exists == true
+                    onResult(exists, body?.message)
+                } else {
+                    onResult(false, null)
+                }
+            } catch (e: Exception) {
+                onResult(false, null)
+            }
         }
     }
 }

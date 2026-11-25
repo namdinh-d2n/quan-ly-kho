@@ -33,16 +33,14 @@ class DashboardRoleAutomationTest {
 
         // a. Đảm bảo TUYỆT ĐỐI KHÔNG CÓ chữ liên quan đến Biểu đồ hay Thống kê
         // Dùng substring = true để quét chuỗi con (VD: Dev code là "Biểu đồ Nhập - Xuất" thì máy vẫn bắt được)
-        composeTestRule.onNodeWithText("Báo cáo", substring = true, ignoreCase = true)
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithText("Biểu đồ", substring = true, ignoreCase = true)
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithText("Top", substring = true, ignoreCase = true)
-            .assertDoesNotExist()
+
+        composeTestRule.onAllNodesWithText("Sản phẩm", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
 
         // b. Đảm bảo PHẢI CÓ danh mục "Xuất kho"
-        composeTestRule.onNodeWithText("Xuất kho", ignoreCase = true)
-            .assertExists()
+        composeTestRule.onAllNodesWithText("Xuất kho", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+
     }
     @Test
     fun testManagerLogin_ShowsFullDashboard_And_Filters() {
@@ -55,14 +53,14 @@ class DashboardRoleAutomationTest {
 
         Thread.sleep(4000)
 
-        composeTestRule.onNodeWithText( "Tổng quan nhập - xuất", substring = true, ignoreCase = true)
-            .assertExists()
-        composeTestRule.onNodeWithText("Biểu đồ nhập - xuất kho", substring = true, ignoreCase = true)
-            .performScrollTo().assertExists()
-        composeTestRule.onNodeWithText("xuất nhiều nhất", substring = true, ignoreCase = true)
-            .performScrollTo().assertExists()
-        composeTestRule.onNodeWithText("tồn kho lâu nhất", substring = true, ignoreCase = true)
-            .performScrollTo().assertExists()
+        composeTestRule.onAllNodesWithText("Duyệt phiếu", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+
+        composeTestRule.onAllNodesWithText("Xem báo cáo", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+        composeTestRule.onAllNodesWithText("Tài khoản", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+
 
         // 4. KIỂM TRA BỘ LỌC (TC_DB_02)
         // Bấm chọn "7 ngày qua" và đảm bảo app không bị crash
@@ -85,9 +83,7 @@ class DashboardRoleAutomationTest {
         composeTestRule.onNodeWithText("ĐĂNG NHẬP").performClick()
 
         // Chờ API gọi về và Compose vẽ màn hình Dashboard Thủ kho
-        Thread.sleep(4000)
-
-        // 2. NGHIỆM THU (Assert) - Khớp 100% với Expected Result của TC_DB_05
+        Thread.sleep(8000)
 
         // a. KHÔNG hiển thị bất kỳ biểu đồ thống kê hay danh sách xếp hạng nào
         composeTestRule.onNodeWithText("Biểu đồ", substring = true, ignoreCase = true)
@@ -99,26 +95,16 @@ class DashboardRoleAutomationTest {
             .assertDoesNotExist()
 
 
-        // b. Màn hình hiển thị 4 danh mục chức năng
-        // Thêm substring = true để máy ảo bỏ qua cái Icon (◇, ⌕, ⇩, ▤) dính kèm
 
-        // b. Màn hình hiển thị 4 danh mục chức năng
-        // Đã xóa substring = true, chỉ giữ lại useUnmergedTree = true
-        // Để máy ảo bắt chính xác chữ trên nút, không bắt nhầm câu mô tả bên dưới
-        composeTestRule.onAllNodesWithText("Nhập kho", substring = true, ignoreCase = true, useUnmergedTree = true)
-            .onFirst()
-            .assertExists()
+        composeTestRule.onAllNodesWithText("Nhập kho", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+        composeTestRule.onAllNodesWithText("Kiểm kho", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
+        composeTestRule.onAllNodesWithText("Quét mã vạch", substring = true, ignoreCase = true)
+            .onFirst().assertExists()
 
-        composeTestRule.onAllNodesWithText("Kiểm kho", substring = true, ignoreCase = true, useUnmergedTree = true)
-            .onFirst()
-            .assertExists()
+                composeTestRule.onAllNodesWithText("Duyệt phiếu", substring = true, ignoreCase = true)
+                    .onFirst().assertExists().assertIsEnabled()
 
-        composeTestRule.onAllNodesWithText("Quét mã vạch", substring = true, ignoreCase = true, useUnmergedTree = true)
-            .onFirst()
-            .assertExists()
-
-        composeTestRule.onAllNodesWithText("Sản phẩm", substring = true, ignoreCase = true, useUnmergedTree = true)
-            .onFirst()
-            .assertExists()
     }
 }

@@ -70,7 +70,10 @@ fun AddProductScreen(
     // State báo lỗi validation ký tự đặc biệt / XSS / Emoji
     var productNameError by remember { mutableStateOf<String?>(null) }
     var skuError by remember { mutableStateOf<String?>(null) }
-
+    //quet tu dong
+    var showBarcodeScanner by remember { mutableStateOf(false) }
+    var barcodeError by remember { mutableStateOf<String?>(null) }
+    var unitError by remember { mutableStateOf<String?>(null) }
     var showPriceWarningDialog by remember { mutableStateOf(false) }
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
@@ -101,7 +104,7 @@ fun AddProductScreen(
                 sellingPrice = sellingPrice,
                 stockQuantity = stockQuantity,
                 minStockLevel = minStockLevel,
-                barcode = barcode,
+                barcode = barcode.trim(),
                 unit = unit,
                 importPrice = importPrice,
                 imageUri = uri
@@ -126,8 +129,15 @@ fun AddProductScreen(
                 "Mã SKU chỉ được chứa chữ không dấu, số, và dấu '-'"
             else -> null
         }
+        val trimmedUnit = unit.trim()
 
-        if (productNameError != null || skuError != null) return
+        unitError = when {
+            trimmedUnit.isEmpty() -> "Đơn vị tính không được bỏ trống"
+            else -> null
+        }
+
+
+        if (productNameError != null || skuError != null|| unitError != null) return
 
         // Kiểm tra Giá bán nhỏ hơn Giá nhập
         val importVal = importPrice.replace(",", "").trim().toDoubleOrNull() ?: 0.0
@@ -152,7 +162,9 @@ fun AddProductScreen(
         derivedStateOf {
             productName.isNotBlank() &&
                     selectedCategoryId != null &&
+                    unit.isNotBlank() &&
                     sku.isNotBlank() &&
+
                     sellingPrice.isNotBlank() &&
                     selectedImageUri != null
         }
@@ -315,6 +327,7 @@ fun AddProductScreen(
                 ) {
                     Button(
                         onClick = { handleSaveProduct() },
+
                         enabled = isFormValid && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -508,13 +521,17 @@ fun AddProductScreen(
                         }
 
                         Column(modifier = Modifier.weight(0.7f)) {
-                            Text("Đơn vị tính", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
+                            Text("Đơn vị tính *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                             Spacer(modifier = Modifier.height(6.dp))
                             CustomInputField(
                                 modifier = Modifier.testTag("input_dvt"),
                                 value = unit,
-                                onValueChange = { unit = it },
-                                placeholder = "Chai, kg..."
+                                onValueChange = {
+                                    unit = it
+                                    unitError = null // Xóa lỗi khi người dùng bắt đầu gõ
+                                },
+                                placeholder = "Chai, kg...",
+                                errorMessage = unitError // Hiển thị lỗi nếu bỏ trống
                             )
                         }
                     }
@@ -522,6 +539,8 @@ fun AddProductScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Mã hàng (SKU)
+                    // Mã hàng (SKU)
+                    // 1. Mã hàng (SKU) * - Không có nút quét
                     Text("Mã hàng (SKU) *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
                     Spacer(modifier = Modifier.height(6.dp))
                     CustomInputField(
@@ -531,17 +550,39 @@ fun AddProductScreen(
                             sku = it
                             skuError = null
                         },
+                        placeholder = "Nhập mã SKU...",
+                        errorMessage = skuError
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+// 2. Mã vạch (Barcode) - Có nút quét mã
+                    Text("Mã vạch (Barcode)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = textDark)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    CustomInputField(
+                        modifier = Modifier.testTag("input_barcode"),
+                        value = barcode,
+                        onValueChange = {
+                            barcode = it
+                            barcodeError = null // Xóa dòng này nếu bạn không validate lỗi cho barcode
+                        },
                         placeholder = "Nhập mã hoặc quét tự động...",
-                        errorMessage = skuError,
+                        errorMessage = barcodeError, // Đổi thành null nếu không validate
                         trailingIcon = {
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
                                     .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(8.dp))
-                                    .clickable { },
+                                    .testTag("btn_scan_barcode")
+                                    .clickable { showBarcodeScanner = true },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(painter = painterResource(id = R.drawable.barcode), contentDescription = "Scan SKU", modifier = Modifier.size(18.dp), tint = textDark)
+                                Icon(
+                                    painter = painterResource(id = R.drawable.barcode),
+                                    contentDescription = "Scan Barcode",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = textDark
+                                )
                             }
                         }
                     )
@@ -620,6 +661,26 @@ fun AddProductScreen(
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
+    if (showBarcodeScanner) {
+        BarcodeScannerDialog(
+            onBarcodeScanned = { scannedCode ->
+                val cleanCode = scannedCode.trim().replace("\n", "")
+                barcode = cleanCode
+                barcodeError = null
+                showBarcodeScanner = false
+
+                // Gọi API kiểm tra trùng mã vạch ngay khi quét xong
+                viewModel.checkBarcodeDuplicate(cleanCode) { exists, message ->
+                    if (exists) {
+                        barcodeError = message ?: "Mã vạch này đã tồn tại trên hệ thống!"
+                    }
+                }
+            },
+            onDismiss = {
+                showBarcodeScanner = false
+            }
+        )
+    }
 }
 
 // Component con: Input Field dùng chung (Đứng độc lập bên ngoài AddProductScreen)
@@ -664,6 +725,7 @@ fun CustomInputField(
                 fontSize = 12.sp
             )
         }
+
     }
 }
 

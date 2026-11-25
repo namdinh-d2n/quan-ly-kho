@@ -95,7 +95,8 @@ namespace SupermarketAPI.Controllers.Products
                     400
                 ));
             }
-
+            var normalizedSku = dto.Sku.Trim();
+            var normalizedBarcode = string.IsNullOrWhiteSpace(dto.Barcode) ? null : dto.Barcode.Trim();
             // Kiểm tra trùng Mã SKU
             var isSkuExists = await _context.Products.AnyAsync(p => p.Sku == dto.Sku);
             if (isSkuExists)
@@ -104,7 +105,17 @@ namespace SupermarketAPI.Controllers.Products
                     $"Mã SKU '{dto.Sku}' đã tồn tại trong hệ thống!", null, 400
                 ));
             }
-
+            // Kiểm tra trùng Mã vạch (chỉ kiểm tra khi người dùng có nhập)
+            if (normalizedBarcode != null)
+            {
+                var isBarcodeExists = await _context.Products.AnyAsync(p => p.Barcode == normalizedBarcode);
+                if (isBarcodeExists)
+                {
+                    return BadRequest(ApiResponse<object>.ErrorResult(
+                        $"Mã vạch '{normalizedBarcode}' đã tồn tại trong hệ thống!", null, 400
+                    ));
+                }
+            }
             // Kiểm tra tồn tại Danh mục
             var categoryExists = await _context.Categories.AnyAsync(c => c.CategoryId == dto.CategoryId);
             if (!categoryExists)
@@ -139,8 +150,8 @@ namespace SupermarketAPI.Controllers.Products
             {
                 CategoryId = dto.CategoryId,
                 ProductName = dto.ProductName,
-                Sku = dto.Sku,
-                Barcode = dto.Barcode,
+                Sku = normalizedSku,
+                Barcode = normalizedBarcode,
                 Unit = dto.Unit,
                 ImportPrice = dto.ImportPrice,
                 SellingPrice = dto.SellingPrice,
@@ -181,6 +192,38 @@ namespace SupermarketAPI.Controllers.Products
                 resultDto,
                 "Thêm sản phẩm mới thành công!",
                 201
+            ));
+        }
+
+        /// <summary>
+        /// ST-2.02.1: Kiểm tra trùng lặp mã vạch (Barcode) ngay khi quét
+        /// </summary>
+        [HttpGet("check-barcode")]
+        public async Task<IActionResult> CheckBarcode([FromQuery] string barcode)
+        {
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                return BadRequest(ApiResponse<object>.ErrorResult(
+                    "Mã vạch không được để trống!", null, 400
+                ));
+            }
+
+            var normalizedBarcode = barcode.Trim();
+            var existingProduct = await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Barcode == normalizedBarcode);
+
+            if (existingProduct != null)
+            {
+                return Ok(ApiResponse<object>.SuccessResult(
+                    new { exists = true, productName = existingProduct.ProductName },
+                    $"Mã vạch này đã thuộc về sản phẩm '{existingProduct.ProductName}'!"
+                ));
+            }
+
+            return Ok(ApiResponse<object>.SuccessResult(
+                new { exists = false },
+                "Mã vạch hợp lệ!"
             ));
         }
     }
