@@ -5,6 +5,7 @@ import appmobile.example.quan_ly_kho.data.model.LoginRequest
 import appmobile.example.quan_ly_kho.data.model.UserInfoResponse
 import appmobile.example.quan_ly_kho.data.model.category.CategoryResponse
 import appmobile.example.quan_ly_kho.data.model.product.ApiResponse
+import appmobile.example.quan_ly_kho.data.model.product.CheckBarcodeData
 import appmobile.example.quan_ly_kho.data.model.product.ProductListContainer
 import appmobile.example.quan_ly_kho.data.model.product.ProductResponse
 import appmobile.example.quan_ly_kho.data.model.statistics.ChartStatisticsResponse
@@ -88,4 +89,12 @@ interface ApiService {
         @Part("ImportPrice") importPrice: RequestBody? = null,
         @Part imageFile: MultipartBody.Part
     ): Response<ApiResponse<ProductResponse>>
+
+    @GET("api/v1/products/check-barcode")
+    suspend fun checkBarcode(
+        @Query("barcode") barcode: String
+    ): Response<ApiResponse<CheckBarcodeData>>
+
+
 }
+

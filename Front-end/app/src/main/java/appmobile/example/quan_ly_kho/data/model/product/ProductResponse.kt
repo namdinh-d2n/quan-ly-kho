@@ -32,3 +32,8 @@ data class ProductResponse(
     val priceFormatted: String
         get() = String.format(Locale.getDefault(), "%,.0f đ", price)
 }
+// 3. Dữ liệu trả về khi kiểm tra trùng mã vạch (ST-2.02.1)
+data class CheckBarcodeData(
+    @SerializedName("exists") val exists: Boolean = false,
+    @SerializedName("productName") val productName: String? = null
+)
